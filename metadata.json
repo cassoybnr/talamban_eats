@@ -1,0 +1,6 @@
+{
+  "name": "USC Dining",
+  "description": "A premium university dining catalogue and student profile system for the University of San Carlos Talamban Campus.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": []
+}
