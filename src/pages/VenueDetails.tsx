@@ -252,7 +252,9 @@ export default function VenueDetails() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mt-auto">
-            <button className="flex-1 py-5 px-8 bg-primary-container text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:opacity-90 transition-all active:scale-[0.98] shadow-lg shadow-primary-container/20">
+            <button 
+              onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.location)}`, '_blank')}
+              className="flex-1 py-5 px-8 bg-primary-container text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:opacity-90 transition-all active:scale-[0.98] shadow-lg shadow-primary-container/20">
               Get Directions
             </button>
             <button 

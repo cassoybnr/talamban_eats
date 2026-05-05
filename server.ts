@@ -16,8 +16,8 @@ app.use(express.json());
 // Database connection pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 's24100031_talambaneats',
-  password: process.env.DB_PASSWORD || 'UjiMatcha2Rich',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 's24100031_talambaneats',
   waitForConnections: true,
   connectionLimit: 10,
@@ -78,6 +78,45 @@ app.get("/api/restaurants/:id/reviews", async (req, res) => {
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch reviews" });
+  }
+});
+
+
+app.put("/api/reviews/:id", async (req, res) => {
+  const { rating, comment } = req.body;
+  try {
+    await pool.execute('UPDATE reviews SET rating = ?, comment = ? WHERE id = ?', [rating, comment, req.params.id]);
+    
+    const [reviewRows]: any = await pool.execute('SELECT restaurant_id FROM reviews WHERE id = ?', [req.params.id]);
+    if (reviewRows.length > 0) {
+      const restaurant_id = reviewRows[0].restaurant_id;
+      await pool.execute(
+        'UPDATE restaurants SET rating = IFNULL((SELECT AVG(rating) FROM reviews WHERE restaurant_id = ?), 0.0), review_count = (SELECT COUNT(*) FROM reviews WHERE restaurant_id = ?) WHERE id = ?',
+        [restaurant_id, restaurant_id, restaurant_id]
+      );
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update review" });
+  }
+});
+
+app.delete("/api/reviews/:id", async (req, res) => {
+  try {
+    const [reviewRows]: any = await pool.execute('SELECT restaurant_id FROM reviews WHERE id = ?', [req.params.id]);
+    const restaurant_id = reviewRows.length > 0 ? reviewRows[0].restaurant_id : null;
+
+    await pool.execute('DELETE FROM reviews WHERE id = ?', [req.params.id]);
+    
+    if (restaurant_id) {
+      await pool.execute(
+        'UPDATE restaurants SET rating = IFNULL((SELECT AVG(rating) FROM reviews WHERE restaurant_id = ?), 0.0), review_count = (SELECT COUNT(*) FROM reviews WHERE restaurant_id = ?) WHERE id = ?',
+        [restaurant_id, restaurant_id, restaurant_id]
+      );
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete review" });
   }
 });
 
@@ -213,7 +252,8 @@ app.post("/api/register", async (req, res) => {
     );
     res.json({ success: true, userId: (result as any).insertId });
   } catch (error: any) {
-    res.status(400).json({ error: error.code === 'ER_DUP_ENTRY' ? "Username or email already exists" : "Registration failed" });
+    console.error("REGISTER DB ERROR:", error);
+    res.status(400).json({ error: error.code === 'ER_DUP_ENTRY' ? "Username or email already exists" : "Registration failed: " + error.message });
   }
 });
 

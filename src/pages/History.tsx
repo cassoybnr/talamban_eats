@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Clock, ExternalLink, Loader2 } from "lucide-react";
+import { Clock, ExternalLink, Loader2, Trash2, Edit2, Save, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface HistoryItem {
   id: number;
+  restaurant_id: number;
   restaurant_name: string;
   visit_date: string;
   comment: string;
@@ -14,6 +15,10 @@ interface HistoryItem {
 export default function History() {
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editRating, setEditRating] = useState<number>(5);
+  const [editComment, setEditComment] = useState<string>("");
 
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -24,13 +29,16 @@ export default function History() {
       return;
     }
 
-    fetch(`/api/history/${user.id}`)
+    fetchHistory(user.id);
+  }, []);
+
+  const fetchHistory = (userId: number) => {
+    fetch(`/api/history/${userId}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
           setHistoryItems(data);
         } else {
-          console.error("Invalid data format for history:", data);
           setHistoryItems([]);
         }
         setLoading(false);
@@ -39,7 +47,47 @@ export default function History() {
         console.error(err);
         setLoading(false);
       });
-  }, []);
+  };
+
+  const handleEditClick = (item: HistoryItem) => {
+    setEditingId(item.id);
+    setEditRating(item.rating);
+    setEditComment(item.comment);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleSaveEdit = async (id: number) => {
+    try {
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: editRating, comment: editComment })
+      });
+      if (res.ok) {
+        setHistoryItems(prev => prev.map(item => 
+          item.id === id ? { ...item, rating: editRating, comment: editComment } : item
+        ));
+        setEditingId(null);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
+    try {
+      const res = await fetch(`/api/reviews/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setHistoryItems(prev => prev.filter(item => item.id !== id));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   if (loading) {
     return (
@@ -72,7 +120,7 @@ export default function History() {
             <div className="flex-1 w-full">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-xl font-bold text-primary-container">{item.restaurant_name}</h3>
-                <span className="font-mono font-bold text-zinc-900">{item.rating}/5 Stars</span>
+                {editingId !== item.id && <span className="font-mono font-bold text-zinc-900">{item.rating}/5 Stars</span>}
               </div>
               <div className="flex items-center gap-4 text-sm text-zinc-500 mb-6 font-medium">
                 <span className="flex items-center gap-1">
@@ -83,16 +131,47 @@ export default function History() {
                 <span>{new Date(item.visit_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
               </div>
               
-              <p className="text-sm text-zinc-500 mb-6 italic">"{item.comment}"</p>
+              {editingId === item.id ? (
+                <div className="space-y-3 mb-4">
+                  <select 
+                    value={editRating} 
+                    onChange={e => setEditRating(Number(e.target.value))}
+                    className="p-2 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold"
+                  >
+                    {[5,4,3,2,1].map(n => <option key={n} value={n}>{n} Stars</option>)}
+                  </select>
+                  <textarea
+                    value={editComment}
+                    onChange={e => setEditComment(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm"
+                    rows={3}
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={() => handleSaveEdit(item.id)} className="px-4 py-2 bg-primary-container text-white rounded-lg text-xs font-bold flex items-center gap-1">
+                      <Save className="w-3 h-3" /> Save
+                    </button>
+                    <button onClick={handleCancelEdit} className="px-4 py-2 bg-zinc-100 text-zinc-600 rounded-lg text-xs font-bold flex items-center gap-1">
+                      <X className="w-3 h-3" /> Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500 mb-6 italic">"{item.comment}"</p>
+              )}
 
-              <div className="flex items-center gap-3">
-                <button className="text-xs font-bold uppercase tracking-widest text-primary-container hover:underline underline-offset-4 flex items-center gap-1 transition-all">
-                  Edit Review
-                </button>
-                <Link to={`/venue/${item.id}`} className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-all">
-                  View Detail <ExternalLink className="w-3 h-3" />
-                </Link>
-              </div>
+              {editingId !== item.id && (
+                <div className="flex flex-wrap items-center gap-4">
+                  <button onClick={() => handleEditClick(item)} className="text-xs font-bold uppercase tracking-widest text-primary-container hover:underline underline-offset-4 flex items-center gap-1 transition-all">
+                    <Edit2 className="w-3 h-3" /> Edit Review
+                  </button>
+                  <button onClick={() => handleDelete(item.id)} className="text-xs font-bold uppercase tracking-widest text-red-500 hover:underline underline-offset-4 flex items-center gap-1 transition-all">
+                    <Trash2 className="w-3 h-3" /> Delete
+                  </button>
+                  <Link to={`/venue/${item.restaurant_id}`} className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-all ml-auto">
+                    View Detail <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         ))}

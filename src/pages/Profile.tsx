@@ -146,7 +146,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
         <button 
           onClick={() => setIsEditing(!isEditing)}
           className={`flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-bold transition-all active:scale-[0.98] border ${isEditing ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white border-zinc-200 text-zinc-900 hover:bg-zinc-50'}`}
@@ -162,6 +162,13 @@ export default function Profile() {
             Save Changes
           </button>
         )}
+        <button 
+          onClick={() => { localStorage.removeItem("user"); window.location.href = "/login"; }}
+          className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-bold transition-all active:scale-[0.98] bg-red-50 text-red-600 border border-red-100 hover:bg-red-100"
+        >
+          <LogOut className="w-5 h-5" />
+          Log Out
+        </button>
       </div>
 
       <div className="space-y-8">
