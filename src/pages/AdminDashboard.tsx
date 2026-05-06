@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Check, X, Shield, Clock, MapPin, Tag, Loader2, Info } from "lucide-react";
+import { Check, X, Shield, Clock, MapPin, Tag, Loader2, Info, MessageSquareX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Submission {
@@ -16,7 +16,14 @@ interface Submission {
 export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  
   const [processing, setProcessing] = useState<number | null>(null);
+  
+  // Rejection State
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState<string>("Does not meet requirements");
+  const [customReason, setCustomReason] = useState<string>("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,13 +51,13 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAction = async (id: number, action: 'accepted' | 'rejected') => {
+  const handleAction = async (id: number, action: 'accepted' | 'rejected', feedback?: string) => {
     setProcessing(id);
     try {
       const res = await fetch(`/api/admin/approve/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action })
+        body: JSON.stringify({ action, feedback })
       });
       if (res.ok) {
         setSubmissions(prev => prev.filter(s => s.id !== id));
@@ -113,23 +120,75 @@ export default function AdminDashboard() {
               </p>
             </div>
 
-            <div className="lg:w-48 flex lg:flex-col gap-3">
-              <button 
-                disabled={processing !== null}
-                onClick={() => handleAction(sub.id, 'accepted')}
-                className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {processing === sub.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                Approve
-              </button>
-              <button 
-                disabled={processing !== null}
-                onClick={() => handleAction(sub.id, 'rejected')}
-                className="flex-1 py-4 bg-zinc-100 text-zinc-600 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-600 active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                <X className="w-4 h-4" />
-                Reject
-              </button>
+            <div className="lg:w-64 flex flex-col gap-3">
+              {rejectingId === sub.id ? (
+                <div className="bg-red-50 p-4 rounded-2xl border border-red-100 flex flex-col gap-3">
+                  <h4 className="font-bold text-red-800 text-sm flex items-center gap-2">
+                    <MessageSquareX className="w-4 h-4" /> Rejection Reason
+                  </h4>
+                  <select 
+                    className="w-full p-2 rounded-xl text-sm border-zinc-200"
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                  >
+                    <option value="Does not meet requirements">Does not meet requirements</option>
+                    <option value="Incomplete information provided">Incomplete information provided</option>
+                    <option value="Duplicate venue suggestion">Duplicate venue suggestion</option>
+                    <option value="Venue is not related to campus dining">Not related to campus dining</option>
+                    <option value="Custom">Custom / Other Reason...</option>
+                  </select>
+                  
+                  {rejectReason === "Custom" && (
+                    <textarea 
+                      placeholder="Type custom reason here..."
+                      className="w-full p-2 rounded-xl text-sm border-zinc-200 resize-none h-20"
+                      value={customReason}
+                      onChange={(e) => setCustomReason(e.target.value)}
+                    />
+                  )}
+                  
+                  <div className="flex gap-2 mt-2">
+                    <button 
+                      onClick={() => {
+                        const finalReason = rejectReason === "Custom" ? customReason : rejectReason;
+                        handleAction(sub.id, 'rejected', finalReason);
+                      }}
+                      className="flex-1 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 active:scale-[0.98] transition-all flex justify-center items-center gap-1"
+                    >
+                      {processing === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Confirm"}
+                    </button>
+                    <button 
+                      onClick={() => setRejectingId(null)}
+                      className="flex-1 py-2 bg-white text-zinc-600 rounded-xl text-xs font-bold border border-zinc-200 hover:bg-zinc-50 active:scale-[0.98] transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex lg:flex-col gap-3 h-full">
+                  <button 
+                    disabled={processing !== null}
+                    onClick={() => handleAction(sub.id, 'accepted')}
+                    className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    {processing === sub.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Approve
+                  </button>
+                  <button 
+                    disabled={processing !== null}
+                    onClick={() => {
+                      setRejectingId(sub.id);
+                      setRejectReason("Does not meet requirements");
+                      setCustomReason("");
+                    }}
+                    className="flex-1 py-4 bg-zinc-100 text-zinc-600 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-600 active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    <X className="w-4 h-4" />
+                    Reject
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}

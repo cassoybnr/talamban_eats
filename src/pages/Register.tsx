@@ -7,7 +7,8 @@ export default function Register() {
     username: "",
     email: "",
     password: "",
-    full_name: ""
+    full_name: "",
+    course: "BS Information Technology"
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -105,6 +106,20 @@ export default function Register() {
                 placeholder="id@usc.edu.ph"
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
+              />
+            </div>
+          </div>
+
+          
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase font-black tracking-widest text-zinc-400 ml-1">Course / Program</label>
+            <div className="relative">
+              <input 
+                required
+                className="w-full bg-zinc-50 border-none rounded-xl p-4 text-zinc-900 font-bold focus:ring-2 focus:ring-primary-container/20 transition-all outline-none"
+                placeholder="Ex. BS Information Technology"
+                value={formData.course}
+                onChange={e => setFormData({...formData, course: e.target.value})}
               />
             </div>
           </div>

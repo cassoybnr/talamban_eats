@@ -41,13 +41,7 @@ export default function Catalogue() {
       });
   }, [activeCategory, searchQuery]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-container" />
-      </div>
-    );
-  }
+
 
   const categories = ['All Spots', 'Cafe', 'Carinderia', 'Fast Food', 'Resto', 'Snack Bar'];
 
@@ -90,7 +84,11 @@ export default function Catalogue() {
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {restaurants.map((res) => (
+        {loading ? (
+          <div className="col-span-full flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-container" />
+          </div>
+        ) : restaurants.map((res) => (
           <Link key={res.id} to={`/venue/${res.id}`} className="group clean-card rounded-2xl overflow-hidden block">
             <div className="aspect-[4/3] overflow-hidden">
               <img 
@@ -115,12 +113,12 @@ export default function Catalogue() {
             </div>
           </Link>
         ))}
-        {restaurants.length === 0 && (
+        {!loading && restaurants.length === 0 && (
           <div className="col-span-full py-20 text-center border-2 border-dashed border-zinc-100 rounded-3xl">
             <Search className="w-12 h-12 text-zinc-200 mx-auto mb-4" />
-            <p className="text-zinc-600 font-extrabold text-xl">Could not reach the campus database</p>
+            <p className="text-zinc-600 font-extrabold text-xl">No spots found</p>
             <p className="text-zinc-400 text-sm mt-3 max-w-md mx-auto">
-              Please check your <b>DB_HOST</b> in the Settings menu. If you are using a remote USC server, ensure you've provided the correct hostname instead of 'localhost'.
+              We couldn't find any dining spots matching your search or category filter. Try adjusting your search!
             </p>
           </div>
         )}

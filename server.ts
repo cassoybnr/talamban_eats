@@ -189,11 +189,13 @@ app.get("/api/profile/:userId", async (req, res) => {
     
     const [reviewStats]: any = await pool.execute('SELECT COUNT(*) as count FROM reviews WHERE user_id = ?', [userId]);
     const [savedStats]: any = await pool.execute('SELECT COUNT(*) as count FROM saved_places WHERE user_id = ?', [userId]);
+    const [submissions]: any = await pool.execute('SELECT id, venue_name, status, rejection_feedback, submitted_at FROM submissions WHERE user_id = ? ORDER BY submitted_at DESC', [userId]);
 
     res.json({
       ...userRows[0],
       reviewsCount: reviewStats[0]?.count || 0,
-      savedCount: savedStats[0]?.count || 0
+      savedCount: savedStats[0]?.count || 0,
+      submissions: submissions || []
     });
   } catch (error) {
     console.error("Database error (profile):", error);
@@ -202,9 +204,9 @@ app.get("/api/profile/:userId", async (req, res) => {
 });
 
 app.put("/api/profile/:userId", async (req, res) => {
-  const { full_name, bio } = req.body;
+  const { full_name, bio, course } = req.body;
   try {
-    await pool.execute('UPDATE users SET full_name = ?, bio = ? WHERE id = ?', [full_name, bio, req.params.userId]);
+    await pool.execute('UPDATE users SET full_name = ?, bio = ?, course = ? WHERE id = ?', [full_name, bio, course, req.params.userId]);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Failed to update profile" });
@@ -244,11 +246,11 @@ app.post("/api/suggest", async (req, res) => {
 
 // Auth API
 app.post("/api/register", async (req, res) => {
-  const { username, password, email, full_name } = req.body;
+  const { username, password, email, full_name, course } = req.body;
   try {
     const [result] = await pool.execute(
-      'INSERT INTO users (username, password, email, full_name) VALUES (?, ?, ?, ?)',
-      [username, password, email, full_name]
+      'INSERT INTO users (username, password, email, full_name, course) VALUES (?, ?, ?, ?, ?)',
+      [username, password, email, full_name, course || null]
     );
     res.json({ success: true, userId: (result as any).insertId });
   } catch (error: any) {

@@ -50,7 +50,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             >
               History
             </Link>
-            {(user?.username === 'admin' || user?.id === 1) && (
+            {Boolean(user?.is_premium) && (
               <Link 
                 to="/admin" 
                 className={`${location.pathname === '/admin' ? 'text-primary-container border-b-2 border-primary-container pb-1' : 'text-zinc-400 hover:text-zinc-600'} transition-colors flex items-center gap-1`}
